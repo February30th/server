@@ -391,7 +391,7 @@ class ImageManager {
 	 *
 	 * @return bool
 	 */
-	public function canConvert(string $format = 'SVG'): bool {
+	public function canConvert(string $format): bool {
 		$cache = $this->cacheFactory->createDistributed('theming-' . $this->urlGenerator->getBaseUrl());
 		if ($value = $cache->get('convert-' . $format)) {
 			return (bool)$value;

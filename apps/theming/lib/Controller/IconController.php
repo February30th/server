@@ -97,13 +97,13 @@ class IconController extends Controller {
 
 		$response = null;
 		$iconFile = null;
-		// retrieve instance favorite icon
+		// retrieve instance favicon
 		try {
 			$iconFile = $this->imageManager->getImage('favicon', false);
 			$response = new FileDisplayResponse($iconFile, Http::STATUS_OK, ['Content-Type' => 'image/x-icon']);
 		} catch (NotFoundException $e) {
 		}
-		// retrieve or generate app specific favorite icon
+		// retrieve or generate app specific favicon
 		if (($this->imageManager->canConvert('PNG') || $this->imageManager->canConvert('SVG')) && $this->imageManager->canConvert('ICO')) {
 			$color = $this->themingDefaults->getColorPrimary();
 			try {
@@ -117,7 +117,7 @@ class IconController extends Controller {
 			}
 			$response = new FileDisplayResponse($iconFile, Http::STATUS_OK, ['Content-Type' => 'image/x-icon']);
 		}
-		// fallback to core favorite icon
+		// fallback to core favicon
 		if ($response === null) {
 			$fallbackLogo = \OC::$SERVERROOT . '/core/img/favicon.png';
 			$response = new DataDisplayResponse($this->fileAccessHelper->file_get_contents($fallbackLogo), Http::STATUS_OK, ['Content-Type' => 'image/png']);
@@ -145,7 +145,7 @@ class IconController extends Controller {
 		}
 
 		$response = null;
-		// retrieve instance favorite icon
+		// retrieve instance favicon
 		try {
 			$iconFile = $this->imageManager->getImage('favicon');
 			$response = new FileDisplayResponse($iconFile, Http::STATUS_OK, ['Content-Type' => $iconFile->getMimeType()]);

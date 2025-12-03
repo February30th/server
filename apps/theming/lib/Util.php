@@ -211,24 +211,16 @@ class Util {
 		try {
 			// find app specific icon
 			$appPath = $this->appManager->getAppPath($app);
-			if ($useSvg) {
-				$icon = $appPath . '/img/' . $app . '.svg';
-				if (file_exists($icon)) {
-					return $icon;
-				}
-				$icon = $appPath . '/img/app.svg';
-				if (file_exists($icon)) {
-					return $icon;
-				}
-			} else {
-				$icon = $appPath . '/img/' . $app . '.png';
-				if (file_exists($icon)) {
-					return $icon;
-				}
-				$icon = $appPath . '/img/app.png';
-				if (file_exists($icon)) {
-					return $icon;
-				}
+			$extension = ($useSvg ? '.svg' : '.png');
+
+			$icon = $appPath . '/img/' . $app . $extension;
+			if (file_exists($icon)) {
+				return $icon;
+			}
+			
+			$icon = $appPath . '/img/app' . $extension;
+			if (file_exists($icon)) {
+				return $icon;
 			}
 		} catch (AppPathNotFoundException $e) {
 		}
@@ -242,11 +234,9 @@ class Util {
 		}
 		// fallback to core logo
 		if ($useSvg) {
-			$icon = \OC::$SERVERROOT . '/core/img/logo/logo.svg';
-			return $icon;
+			return \OC::$SERVERROOT . '/core/img/logo/logo.svg';
 		} else {
-			$icon = \OC::$SERVERROOT . '/core/img/logo/logo.png';
-			return $icon;
+			return \OC::$SERVERROOT . '/core/img/logo/logo.png';
 		}
 	}
 

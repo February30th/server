@@ -114,24 +114,23 @@ class IconBuilder {
 		if ($appIconContent === false || $appIconContent === '') {
 			return false;
 		}
-
-		$appIconFile = null;
-		$appIconIsSvg = ($mime === 'image/svg+xml' || substr($appIconContent, 0, 4) === '<svg');
-
-		// if source image is svg but svg not supported, abort
+		
+		$appIconIsSvg = ($mime === 'image/svg+xml' || str_starts_with($appIconContent, '<svg') || str_starts_with($appIconContent, '<?xml'));
+		// if source image is svg but svg not supported, abort.
+		// source images are both user and developer set, and there is guarantees that mime and extension match actual contents type
 		if ($appIconIsSvg && !$supportSvg) {
 			return false;
 		}
 
+		// construct original image object
 		try {
-			// construct original image object
 			$appIconFile = new Imagick();
 			$appIconFile->setBackgroundColor(new ImagickPixel('transparent'));
 
 			if ($appIconIsSvg) {
 				// handle SVG images
 				// ensure proper XML declaration
-				if (substr($appIconContent, 0, 5) !== '<?xml') {
+				if (str_starts_with($appIconContent, '<?xml')) {
 					$svg = '<?xml version="1.0"?>' . $appIconContent;
 				} else {
 					$svg = $appIconContent;
