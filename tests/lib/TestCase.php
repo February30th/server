@@ -15,6 +15,7 @@ use OC\Command\QueueBus;
 use OC\Files\AppData\Factory;
 use OC\Files\Cache\Storage;
 use OC\Files\Config\MountProviderCollection;
+use OC\Files\Config\UserMountCache;
 use OC\Files\Filesystem;
 use OC\Files\Mount\CacheMountProvider;
 use OC\Files\Mount\LocalHomeMountProvider;
@@ -219,6 +220,8 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
 		if ($this->IsDatabaseAccessAllowed()) {
 			Storage::getGlobalCache()->clearCache();
 		}
+
+		Server::get(UserMountCache::class)->flush();
 
 		// tearDown the traits
 		$traits = $this->getTestTraits();
