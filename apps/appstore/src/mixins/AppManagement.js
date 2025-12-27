@@ -4,7 +4,7 @@
  */
 
 import { showError } from '@nextcloud/dialogs'
-import rebuildNavigation from '../service/rebuild-navigation.js'
+import { rebuildNavigation } from '../service/rebuild-navigation.ts'
 
 const productName = window.OC.theme.productName
 
@@ -251,20 +251,6 @@ export default {
 				this.$store.dispatch('enableApp', { appId })
 					.then(() => { rebuildNavigation() })
 					.catch((error) => { showError(error) })
-			}
-		},
-		update(appId) {
-			if (this.app?.app_api) {
-				this.appApiStore.updateApp(appId)
-					.then(() => { rebuildNavigation() })
-					.catch((error) => { showError(error) })
-			} else {
-				this.$store.dispatch('updateApp', { appId })
-					.catch((error) => { showError(error) })
-					.then(() => {
-						rebuildNavigation()
-						this.store.updateCount = Math.max(this.store.updateCount - 1, 0)
-					})
 			}
 		},
 	},
