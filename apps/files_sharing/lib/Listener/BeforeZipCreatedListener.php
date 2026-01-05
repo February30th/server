@@ -32,28 +32,38 @@ class BeforeZipCreatedListener implements IEventListener {
 			return;
 		}
 
-		$dir = $event->getDirectory();
-		$files = $event->getFiles();
+		$user = $this->userSession->getUser();
+		if (!$user) {
+			// fixme: do we need check anything for anonymous users?
+			$event->setSuccessful(true);
+		}
 
-		$pathsToCheck = [];
-		foreach ($files as $file) {
+		$userFolder = $this->rootFolder->getUserFolder($user->getUID());
+		$viewOnlyHandler = new ViewOnly($userFolder);
+		$this->checkSelectedFilesCanBeDownloaded($event, $viewOnlyHandler);
+		$this->checkNodesCanBeDownloaded($event, $viewOnlyHandler);
+	}
+
+	private function checkSelectedFilesCanBeDownloaded(BeforeZipCreatedEvent $event, ViewOnly $viewOnlyHandler): void {
+		// Check only for user/group shares. Don't restrict e.g. share links
+		$dir = $event->getDirectory();
+		$pathsToCheck = [$dir];
+		foreach ($event->getFiles() as $file) {
 			$pathsToCheck[] = $dir . '/' . $file;
 		}
 
-		// Check only for user/group shares. Don't restrict e.g. share links
-		$user = $this->userSession->getUser();
-		if ($user) {
-			$viewOnlyHandler = new ViewOnly(
-				$this->rootFolder->getUserFolder($user->getUID())
-			);
-			if (!$viewOnlyHandler->check($pathsToCheck)) {
-				$event->setErrorMessage('Access to this resource or one of its sub-items has been denied.');
-				$event->setSuccessful(false);
-			} else {
-				$event->setSuccessful(true);
-			}
+		if (!$viewOnlyHandler->check($pathsToCheck)) {
+			$event->setErrorMessage('Access to this resource or one of its sub-items has been denied.');
+			$event->setSuccessful(false);
 		} else {
 			$event->setSuccessful(true);
 		}
+	}
+
+	private function checkNodesCanBeDownloaded(BeforeZipCreatedEvent $event, ViewOnly $viewOnlyHandler): void {
+		$nodes = array_values(array_filter($event->getNodes(),
+			static fn ($node) => $viewOnlyHandler->checkNode($node)));
+
+		$event->setNodes($nodes);
 	}
 }

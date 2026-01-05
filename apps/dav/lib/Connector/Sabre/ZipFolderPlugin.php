@@ -137,7 +137,14 @@ class ZipFolderPlugin extends ServerPlugin {
 		}
 
 		$folder = $node->getNode();
-		$event = new BeforeZipCreatedEvent($folder, $files);
+		$nodes = empty($files) ? $folder->getDirectoryListing() : [];
+		foreach ($files as $path) {
+			$child = $node->getChild($path);
+			assert($child instanceof Node);
+			$nodes[] = $child->getNode();
+		}
+
+		$event = new BeforeZipCreatedEvent($folder, $files, $nodes);
 		$this->eventDispatcher->dispatchTyped($event);
 		if ((!$event->isSuccessful()) || $event->getErrorMessage() !== null) {
 			$errorMessage = $event->getErrorMessage();
@@ -150,12 +157,7 @@ class ZipFolderPlugin extends ServerPlugin {
 			throw new Forbidden($errorMessage);
 		}
 
-		$content = empty($files) ? $folder->getDirectoryListing() : [];
-		foreach ($files as $path) {
-			$child = $node->getChild($path);
-			assert($child instanceof Node);
-			$content[] = $child->getNode();
-		}
+		$nodes = $event->getNodes();
 
 		$archiveName = $folder->getName();
 		if (count(explode('/', trim($folder->getPath(), '/'), 3)) === 2) {
@@ -169,13 +171,13 @@ class ZipFolderPlugin extends ServerPlugin {
 			$rootPath = dirname($folder->getPath());
 		}
 
-		$streamer = new Streamer($tarRequest, -1, count($content), $this->timezoneFactory);
+		$streamer = new Streamer($tarRequest, -1, count($nodes), $this->timezoneFactory);
 		$streamer->sendHeaders($archiveName);
 		// For full folder downloads we also add the folder itself to the archive
 		if (empty($files)) {
 			$streamer->addEmptyDir($archiveName);
 		}
-		foreach ($content as $node) {
+		foreach ($nodes as $node) {
 			$this->streamNode($streamer, $node, $rootPath);
 		}
 		$streamer->finalize();

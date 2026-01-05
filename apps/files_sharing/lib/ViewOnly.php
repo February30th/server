@@ -23,7 +23,17 @@ class ViewOnly {
 	) {
 	}
 
+	public function checkNode(Node $node): bool {
+		return match (true) {
+			// access to filecache is expensive in the loop
+			$node instanceof File => $this->checkFileInfo($node),
+			// get directory content is a rather cheap query
+			$node instanceof Folder => $this->dirRecursiveCheck($node),
+		};
+	}
+
 	/**
+	 * // fixme: inline this method to listener
 	 * @param string[] $pathsToCheck
 	 * @return bool
 	 */
@@ -32,17 +42,7 @@ class ViewOnly {
 		foreach ($pathsToCheck as $file) {
 			try {
 				$info = $this->userFolder->get($file);
-				if ($info instanceof File) {
-					// access to filecache is expensive in the loop
-					if (!$this->checkFileInfo($info)) {
-						return false;
-					}
-				} elseif ($info instanceof Folder) {
-					// get directory content is rather cheap query
-					if (!$this->dirRecursiveCheck($info)) {
-						return false;
-					}
-				}
+				return $this->checkNode($info);
 			} catch (NotFoundException $e) {
 				continue;
 			}
