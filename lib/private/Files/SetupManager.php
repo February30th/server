@@ -31,6 +31,7 @@ use OCP\App\IAppManager;
 use OCP\Constants;
 use OCP\Diagnostics\IEventLogger;
 use OCP\EventDispatcher\IEventDispatcher;
+use OCP\Files\Config\IAuthoritativeMountProvider;
 use OCP\Files\Config\ICachedMountInfo;
 use OCP\Files\Config\IHomeMountProvider;
 use OCP\Files\Config\IMountProvider;
@@ -226,6 +227,24 @@ class SetupManager {
 	}
 
 	/**
+	 * Update the cached mounts for all non-authoritative mount providers for a user.
+	 */
+	private function updateNonAuthoritativeProviders(IUser $user): void {
+		$providers = $this->mountProviderCollection->getProviders();
+		$nonAuthoritativeProviders = array_filter(
+			$providers,
+			fn (IMountProvider $provider) => !(
+				$provider instanceof IAuthoritativeMountProvider ||
+				$provider instanceof IRootMountProvider ||
+				$provider instanceof IHomeMountProvider
+			)
+		);
+		$providerNames = array_map(fn (IMountProvider $provider) => get_class($provider) ,$nonAuthoritativeProviders);
+		$mount = $this->mountProviderCollection->getUserMountsForProviderClasses($user, $providerNames);
+		$this->userMountCache->registerMounts($user,  $mount, $providerNames);
+	}
+
+	/**
 	 * Setup the full filesystem for the specified user
 	 */
 	public function setupForUser(IUser $user): void {
@@ -332,12 +351,16 @@ class SetupManager {
 		});
 		$this->registerMounts($user, $mounts, $newProviders);
 
+		$this->markUserAsFullySetup($user);
+		$this->eventLogger->end('fs:setup:user:full:post');
+	}
+
+	private function markUserAsFullySetup(IUser $user): void {
 		$cacheDuration = $this->config->getSystemValueInt('fs_mount_cache_duration', 5 * 60);
 		if ($cacheDuration > 0) {
 			$this->cache->set($user->getUID(), true, $cacheDuration);
 			$this->fullSetupRequired[$user->getUID()] = false;
 		}
-		$this->eventLogger->end('fs:setup:user:full:post');
 	}
 
 	/**
@@ -431,8 +454,8 @@ class SetupManager {
 		}
 
 		if ($this->fullSetupRequired($user)) {
-			$this->setupForUser($user);
-			return;
+			$this->updateNonAuthoritativeProviders($user);
+			$this->markUserAsFullySetup($user);
 		}
 
 		// for the user's home folder, and includes children we need everything always
