@@ -28,8 +28,8 @@ class BeforeZipCreatedEvent extends Event {
 	private ?Folder $folder = null;
 
 	/**
-	 * @param list<string> $files
-	 * @param list<Node> $nodes
+	 * @param list<string> $files Selected files, empty for folder selection
+	 * @param list<Node> $nodes Recursively collected nodes
 	 * @since 25.0.0
 	 * @since 31.0.0 support `OCP\Files\Folder` as `$directory` parameter - passing a string is deprecated now
 	 */

@@ -24,6 +24,7 @@ class BeforeZipCreatedListener implements IEventListener {
 	public function __construct(
 		private IUserSession $userSession,
 		private IRootFolder $rootFolder,
+		private ViewOnly $viewOnly,
 	) {
 	}
 
@@ -34,36 +35,20 @@ class BeforeZipCreatedListener implements IEventListener {
 
 		$user = $this->userSession->getUser();
 		if (!$user) {
-			// fixme: do we need check anything for anonymous users?
-			$event->setSuccessful(true);
+			return;
 		}
 
 		$userFolder = $this->rootFolder->getUserFolder($user->getUID());
-		$viewOnlyHandler = new ViewOnly($userFolder);
-		$this->checkSelectedFilesCanBeDownloaded($event, $viewOnlyHandler);
-		$this->checkNodesCanBeDownloaded($event, $viewOnlyHandler);
-	}
-
-	private function checkSelectedFilesCanBeDownloaded(BeforeZipCreatedEvent $event, ViewOnly $viewOnlyHandler): void {
-		// Check only for user/group shares. Don't restrict e.g. share links
-		$dir = $event->getDirectory();
-		$pathsToCheck = [$dir];
-		foreach ($event->getFiles() as $file) {
-			$pathsToCheck[] = $dir . '/' . $file;
-		}
-
-		if (!$viewOnlyHandler->check($pathsToCheck)) {
-			$event->setErrorMessage('Access to this resource or one of its sub-items has been denied.');
+		// Check whether the user can download the requested folder
+		$folder = $userFolder->get(substr($event->getDirectory(), strlen($userFolder->getPath())));
+		if (!$this->viewOnly->isNodeCanBeDownloaded($folder)) {
 			$event->setSuccessful(false);
-		} else {
-			$event->setSuccessful(true);
+			$event->setErrorMessage('Access to this resource has been denied.');
+			return;
 		}
-	}
 
-	private function checkNodesCanBeDownloaded(BeforeZipCreatedEvent $event, ViewOnly $viewOnlyHandler): void {
-		$nodes = array_values(array_filter($event->getNodes(),
-			static fn ($node) => $viewOnlyHandler->checkNode($node)));
-
-		$event->setNodes($nodes);
+		$nodes = array_filter($event->getNodes(), fn ($node) => $this->viewOnly->isNodeCanBeDownloaded($node));
+		$event->setNodes(array_values($nodes));
+		$event->setSuccessful(true);
 	}
 }
