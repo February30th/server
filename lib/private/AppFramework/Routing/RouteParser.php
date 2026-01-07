@@ -94,7 +94,7 @@ class RouteParser {
 		$routeName = strtolower($routeNamePrefix . $appName . '.' . $controller . '.' . $action . $postfix);
 
 		$routeObject = new Route($url);
-		$routeObject->method((array)($route['verb'] ?? ['GET']));
+		$routeObject->method($route['verb'] ?? 'GET');
 
 		// optionally register requirements for route. This is used to
 		// tell the route parser how url parameters should be matched

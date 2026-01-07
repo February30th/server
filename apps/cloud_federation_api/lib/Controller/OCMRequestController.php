@@ -53,9 +53,7 @@ class OCMRequestController extends Controller {
 	#[PublicPage]
 	#[BruteForceProtection(action: 'receiveOcmRequest')]
 	public function manageOCMRequests(string $ocmPath): Response {
-		try {
-			json_encode($ocmPath, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
-		} catch (JsonException) {
+		if (!mb_check_encoding($ocmPath, 'UTF-8')) {
 			throw new OCMArgumentException('path is not UTF-8');
 		}
 
@@ -71,7 +69,7 @@ class OCMRequestController extends Controller {
 		// assuming that ocm request contains a json array
 		$payload = $signedRequest?->getBody() ?? file_get_contents('php://input');
 		try {
-			$payload = (!$payload) ? null : json_decode($payload, true, 512, JSON_THROW_ON_ERROR);
+			$payload = ($payload) ? json_decode($payload, true, 512, JSON_THROW_ON_ERROR) : null;
 		} catch (JsonException $e) {
 			$this->logger->debug('json decode error', ['exception' => $e]);
 			$payload = null;
@@ -79,7 +77,7 @@ class OCMRequestController extends Controller {
 
 		$event = new OCMEndpointRequestEvent(
 			$this->request->getMethod(),
-			str_replace('//', '/', $ocmPath),
+			preg_replace('@/+@', '/', $ocmPath),
 			$payload,
 			$signedRequest?->getOrigin()
 		);
